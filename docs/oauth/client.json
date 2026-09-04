@@ -1,0 +1,10 @@
+{
+  "client_id": "https://iammayron.github.io/pour/oauth/client.json",
+  "client_name": "Pour",
+  "client_uri": "https://github.com/iammayron/pour",
+  "redirect_uris": ["https://iammayron.github.io/pour/oauth/callback.html"],
+  "token_endpoint_auth_method": "none",
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "data:read_write"
+}

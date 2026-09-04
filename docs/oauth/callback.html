@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<title>Pour</title>
+<p>Returning to Pour… <a id="l">open Pour manually</a> if nothing happens.</p>
+<script>
+  // Todoist requires an https redirect_uri, so this page bounces the code
+  // to the app's pour:// scheme. PKCE makes the code useless on its own.
+  var deep = "pour://oauth" + location.search;
+  document.getElementById("l").href = deep;
+  location.replace(deep);
+</script>
