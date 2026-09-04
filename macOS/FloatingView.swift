@@ -3,7 +3,6 @@ import TodoistCore
 
 struct FloatingView: View {
     @Environment(AppModel.self) private var model
-    @State private var hovering = false
 
     var body: some View {
         let p = model.pomodoro
@@ -23,7 +22,6 @@ struct FloatingView: View {
         .frame(width: Self.size(compact: compact).width, height: Self.size(compact: compact).height)
         .glassCard(cornerRadius: compact ? 28 : 16)
         .contentShape(Rectangle())   // right-click anywhere, not only on text and water
-        .onHover { hovering = $0 }
         .contextMenu {
             Button("+5 minutes") { p.extend(by: 300) }
             Button("Complete task") { Task { await model.complete() } }
@@ -47,7 +45,7 @@ struct FloatingView: View {
                 RoundButton(icon: "checkmark", size: 36, filled: true, tint: .green) { Task { await model.complete() } }
                 VStack(alignment: .leading, spacing: 6) {
                     caption("Done · \(Int(p.total / 60)) min")
-                    TaskName(p.task?.content ?? "", size: 11, lines: 1)
+                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: 1)
                     HStack(spacing: 6) {
                         Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? "Break") { model.startBreak() }
                             .buttonStyle(Pill(prominent: true))
@@ -58,18 +56,19 @@ struct FloatingView: View {
                 Spacer(minLength: 0)
             } else {
                 RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 32, filled: p.isPaused) { p.togglePause() }
-                    .opacity(controlOpacity)
                 Text(timeString(p.remaining))
                     .font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
                     .opacity(p.isPaused ? 0.45 : 1)
                 Divider().frame(height: 36)
                 VStack(alignment: .leading, spacing: 3) {
                     caption(p.phase == .rest ? "Break" : p.isPaused ? "Paused" : "Focus")
-                    TaskName(p.task?.content ?? "", size: 11, lines: 2)
+                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: model.meta(p.task).isEmpty ? 2 : 1)
+                    if !model.meta(p.task).isEmpty {
+                        Text(model.meta(p.task)).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                RoundButton(icon: "checkmark", size: 28) { Task { await model.complete() } }
-                    .opacity(controlOpacity)
+                RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
             }
         }
         .padding(.horizontal, 14)
@@ -89,20 +88,16 @@ struct FloatingView: View {
                 Button("Stop") { model.stop() }.buttonStyle(Pill())
             } else {
                 RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 28, filled: p.isPaused) { p.togglePause() }
-                    .opacity(controlOpacity)
-                TaskName(p.task?.content ?? "", size: 12, weight: .medium, lines: 1)
+                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 12, weight: .medium, lines: 1)
                 Spacer(minLength: 0)
                 Text(timeString(p.remaining))
                     .font(.system(size: 22, weight: .light, design: .rounded).monospacedDigit())
                     .opacity(p.isPaused ? 0.45 : 1)
-                RoundButton(icon: "checkmark", size: 28) { Task { await model.complete() } }
-                    .opacity(controlOpacity)
+                RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
             }
         }
         .padding(.horizontal, 12)
     }
-
-    private var controlOpacity: Double { hovering ? 1 : 0.65 }
 
     private func caption(_ s: String) -> some View {
         Text(s).font(.system(size: 9, weight: .medium)).textCase(.uppercase).tracking(0.6).foregroundStyle(.secondary)
@@ -129,14 +124,16 @@ extension View {
 /// Hover tracks the whole label box, not the glyphs.
 struct TaskName: View {
     let text: String
+    var subtitle = ""
+    var priority = 1
     var size: CGFloat = 11
     var weight: Font.Weight = .semibold
     var lines: Int = 1
     @State private var showTip = false
     @State private var hoverTask: Task<Void, Never>?
 
-    init(_ text: String, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1) {
-        self.text = text; self.size = size; self.weight = weight; self.lines = lines
+    init(_ text: String, subtitle: String = "", priority: Int = 1, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1) {
+        self.text = text; self.subtitle = subtitle; self.priority = priority; self.size = size; self.weight = weight; self.lines = lines
     }
 
     var body: some View {
@@ -154,12 +151,20 @@ struct TaskName: View {
                 }
             }
             .popover(isPresented: $showTip, arrowEdge: .top) {
-                Text(text)
-                    .font(.callout)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(width: 260, alignment: .leading)
-                    .padding(10)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(text).font(.callout)
+                    HStack(spacing: 6) {
+                        if let c = priorityColor(priority) {
+                            Image(systemName: "flag.fill").foregroundStyle(c)
+                        }
+                        if !subtitle.isEmpty { Text(subtitle).foregroundStyle(.secondary) }
+                    }
+                    .font(.caption)
+                }
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 260, alignment: .leading)
+                .padding(10)
             }
     }
 }
@@ -184,15 +189,27 @@ struct RoundButton: View {
     var filled = false
     var tint: Color = .accentColor
     let action: () -> Void
+    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: size * 0.38, weight: .semibold))
-                .foregroundStyle(filled ? Color.white : Color.primary)
+                .foregroundStyle(filled ? Color.white : hovering ? tint : Color.primary)
                 .frame(width: size, height: size)
-                .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(.primary.opacity(0.08)), in: Circle())
+                .background(filled ? AnyShapeStyle(tint.opacity(hovering ? 0.85 : 1))
+                            : hovering ? AnyShapeStyle(tint.opacity(0.35)) : AnyShapeStyle(.primary.opacity(0.14)), in: Circle())
+                .overlay(Circle().strokeBorder(filled ? Color.clear : hovering ? tint.opacity(0.5) : Color.primary.opacity(0.18), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+/// Plain button that shrinks slightly while pressed.
+struct PressScale: ButtonStyle {
+    func makeBody(configuration c: Configuration) -> some View {
+        c.label.scaleEffect(c.isPressed ? 0.92 : 1).animation(.easeOut(duration: 0.1), value: c.isPressed)
     }
 }

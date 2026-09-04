@@ -35,11 +35,16 @@ struct PickerView: View {
             }
 
             List(model.visibleTasks, selection: $model.selectedTaskId) { task in
-                HStack {
-                    if let color = priorityColor(task.priority) {   // Todoist: 4 = P1 … 1 = none
-                        Image(systemName: "flag.fill").foregroundStyle(color).font(.system(size: 11))
+                HStack(alignment: .firstTextBaseline) {
+                    // Todoist: 4 = P1 … 1 = none. The slot stays so names line up across rows.
+                    Image(systemName: "flag.fill").font(.system(size: 11))
+                        .foregroundStyle(priorityColor(task.priority) ?? .clear)
+                    VStack(alignment: .leading, spacing: 2) {
+                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, weight: .regular)
+                        if !model.meta(task).isEmpty {
+                            Text(model.meta(task)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        }
                     }
-                    TaskName(task.content, size: 13, weight: .regular)
                     if let due = task.due { Text(due.string).font(.caption).foregroundStyle(.secondary) }
                 }
                 .tag(task.id)
@@ -57,7 +62,7 @@ struct PickerView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Selected").font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
-                    TaskName(model.selectedTask?.content ?? "Pick a task", size: 13, weight: .regular)
+                    TaskName(model.selectedTask?.content ?? "Pick a task", subtitle: model.meta(model.selectedTask), priority: model.selectedTask?.priority ?? 1, size: 13, weight: .regular)
                         .foregroundStyle(model.selectedTask == nil ? .secondary : .primary)
                 }
                 Spacer()
@@ -101,7 +106,7 @@ struct RunningPanel: View {
                 .font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(timeString(p.remaining)).font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
-                TaskName(p.task?.content ?? "", size: 13)
+                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 13)
             }
             ProgressView(value: p.level)
             HStack(spacing: 6) {

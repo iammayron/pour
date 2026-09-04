@@ -19,13 +19,24 @@ public actor TodoistClient {
     }
 
     public func tasks(filter: String = "today") async throws -> [TodoistTask] {
-        struct Page: Decodable { let results: [TodoistTask]; let next_cursor: String? }
-        var all: [TodoistTask] = []
+        try await allPages("tasks/filter", query: [URLQueryItem(name: "query", value: filter)])
+    }
+
+    /// id → name for every project.
+    public func projects() async throws -> [String: String] {
+        let list: [TodoistProject] = try await allPages("projects")
+        return Dictionary(list.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private struct Page<T: Decodable>: Decodable { let results: [T]; let next_cursor: String? }
+
+    private func allPages<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> [T] {
+        var all: [T] = []
         var cursor: String? = nil
         repeat {
-            var items = [URLQueryItem(name: "query", value: filter)]
+            var items = query
             if let cursor { items.append(URLQueryItem(name: "cursor", value: cursor)) }
-            let page: Page = try await send("GET", "tasks/filter", query: items)
+            let page: Page<T> = try await send("GET", path, query: items)
             all += page.results
             cursor = page.next_cursor
         } while cursor != nil

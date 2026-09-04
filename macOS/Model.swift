@@ -7,6 +7,7 @@ import UserNotifications
 final class AppModel {
     let pomodoro: Pomodoro
     var tasks: [TodoistTask] = []
+    var projects: [String: String] = [:]
     var selectedTaskId: String?
     var search = ""
     var error: String?
@@ -58,13 +59,22 @@ final class AppModel {
     }
     var selectedTask: TodoistTask? { tasks.first { $0.id == selectedTaskId } }
 
+    /// "Project · Label · Label" for a task, empty when there is neither.
+    func meta(_ task: TodoistTask?) -> String {
+        guard let task else { return "" }
+        return ([task.projectId.flatMap { projects[$0] }] + task.labels).compactMap { $0 }.joined(separator: " · ")
+    }
+
     // MARK: - Todoist
 
     func loadTasks() async {
         guard let client else { error = "Add your Todoist API token in Settings."; return }
         loading = true; defer { loading = false }
-        do { tasks = try await client.tasks(filter: filter); error = nil }
-        catch { self.error = error.localizedDescription }
+        do {
+            async let t = client.tasks(filter: filter)
+            async let p = client.projects()
+            (tasks, projects) = try await (t, p); error = nil
+        } catch { self.error = error.localizedDescription }
     }
 
     func complete() async {

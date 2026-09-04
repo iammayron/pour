@@ -41,10 +41,11 @@ final class PomodoroTests: XCTestCase {
     }
 
     func testTaskDecoding() throws {
-        let json = #"{"results":[{"id":"9","content":"Buy milk","project_id":"p1","priority":4,"due":{"date":"2026-09-03","string":"today"}}],"next_cursor":null}"#
+        let json = #"{"results":[{"id":"9","content":"Buy milk","project_id":"p1","priority":4,"due":{"date":"2026-09-03","string":"today"},"labels":["Creative Memories"]}],"next_cursor":null}"#
         struct Page: Decodable { let results: [TodoistTask] }
         let page = try JSONDecoder().decode(Page.self, from: Data(json.utf8))
         XCTAssertEqual(page.results.first?.content, "Buy milk")
         XCTAssertEqual(page.results.first?.due?.string, "today")
+        XCTAssertEqual(page.results.first?.labels, ["Creative Memories"])
     }
 }
