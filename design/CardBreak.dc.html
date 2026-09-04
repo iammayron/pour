@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, 'Helvetica Neue', sans-serif; }
+    a { color: #2563eb; } a:hover { opacity: 0.8; }
+    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-520px); } }
+    .wave { position: absolute; left: 0; bottom: 0; width: 1040px; height: 100%; animation: drift linear infinite; }
+    .still .wave { animation-play-state: paused; }
+  </style>
+</helmet>
+<div style="width: 720px; height: 380px; padding: 24px 28px; box-sizing: border-box; background: #fbfaf8; display: flex; flex-direction: column; gap: 14px;">
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 18px; font-weight: 600; color: #1c1c1e;">Card · Break</div>
+    <div style="font-size: 13px; color: #6e6e73;">Same layout, water turns green and drains instead of filling. Complete stays available.</div>
+  </div>
+  <div style="flex: 1; border-radius: 12px; background: linear-gradient(135deg, #d9c7b8 0%, #9fb3c8 45%, #5b6b8c 100%); display: flex; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 600px; height: 200px; border-radius: 32px; overflow: hidden; background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 20px 50px rgba(0,0,0,0.25); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+      <div class="" style="position: absolute; left: 0; right: 0; bottom: 0; height: 70%; overflow: hidden;">
+            <svg class="wave" style="animation-duration: 7s;" viewBox="0 0 1040 120" preserveAspectRatio="none"><path d="M0,14 Q65,0 130,14 T260,14 T390,14 T520,14 T650,14 T780,14 T910,14 T1040,14 V120 H0 Z" fill="rgba(22,163,74,0.30)"></path></svg>
+            <svg class="wave" style="animation-duration: 4.5s; height: 92%;" viewBox="0 0 1040 120" preserveAspectRatio="none"><path d="M0,14 Q65,0 130,14 T260,14 T390,14 T520,14 T650,14 T780,14 T910,14 T1040,14 V120 H0 Z" fill="rgba(22,163,74,0.48)"></path></svg>
+          </div>
+      <div style="position: relative; height: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 24px; padding: 0 28px;"><div style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(28,28,30,0.08); color: #1c1c1e; flex: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg></div><div style="font-weight: 300; font-size: 56px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #1c1c1e; flex: none;">04:10</div><div style="width: 1px; align-self: stretch; margin: 32px 0; background: rgba(28,28,30,0.12); flex: none;"></div><div style="display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1;"><div style="font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(28,28,30,0.6); ">Break</div><div style="font-weight: 600; font-size: 22px; line-height: 1.2; color: #1c1c1e; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; ">Write the release notes for 0.1</div></div><div style="width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(28,28,30,0.08); color: #1c1c1e; flex: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></div>
+    </div>
+  </div>
+  <div style="font-size: 12px; color: #8e8e93;">Real size 300×100, shown at 2×.</div>
+</div>
+</x-dc>
+</body>
+</html>

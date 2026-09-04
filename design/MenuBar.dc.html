@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, 'Helvetica Neue', sans-serif; }
+    a { color: #2563eb; } a:hover { opacity: 0.8; }
+  </style>
+</helmet>
+<div style="width: 760px; height: 620px; padding: 24px 28px; box-sizing: border-box; background: #fbfaf8; display: flex; flex-direction: column; gap: 16px;">
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-size: 18px; font-weight: 600; color: #1c1c1e;">Menu bar item</div>
+    <div style="font-size: 13px; color: #6e6e73;">Three states, shown at 2×. Glyph is 18 px, time is 13 px medium in the real bar.</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 12px; color: #6e6e73;">Idle · app glyph only, half-full glass</div>
+      <div style="height: 56px; border-radius: 10px; background: rgba(236,236,238,0.9); display: flex; align-items: center; justify-content: flex-end; gap: 28px; padding: 0 24px; color: #1c1c1e; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+        <div style="width: 40px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 8px; background: rgba(28,28,30,0.0);"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" stroke-width="1.8">
+  <defs><clipPath id="c12.5"><circle cx="12" cy="12" r="8.2"></circle></clipPath></defs>
+  <circle cx="12" cy="12" r="9"></circle>
+  <path clip-path="url(#c12.5)" d="M2 12.5 Q5 10.9 8 12.5 T14 12.5 T20 12.5 T26 12.5 V24 H2 Z" fill="#1c1c1e" stroke="none"></path>
+</svg></div><div style="width: 32px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="width: 48px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="font-size: 26px;">Wed 3 Sep&nbsp;&nbsp;17:32</div>
+      </div>
+    </div><div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 12px; color: #6e6e73;">Focus · glass fills as the session progresses, time beside it</div>
+      <div style="height: 56px; border-radius: 10px; background: rgba(236,236,238,0.9); display: flex; align-items: center; justify-content: flex-end; gap: 28px; padding: 0 24px; color: #1c1c1e; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+        <div style="width: 40px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 8px; background: rgba(28,28,30,0.0);"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" stroke-width="1.8">
+  <defs><clipPath id="c15"><circle cx="12" cy="12" r="8.2"></circle></clipPath></defs>
+  <circle cx="12" cy="12" r="9"></circle>
+  <path clip-path="url(#c15)" d="M2 15 Q5 13.4 8 15 T14 15 T20 15 T26 15 V24 H2 Z" fill="#1c1c1e" stroke="none"></path>
+</svg><div>18:42</div></div><div style="width: 32px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="width: 48px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="font-size: 26px;">Wed 3 Sep&nbsp;&nbsp;17:32</div>
+      </div>
+    </div><div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 12px; color: #6e6e73;">Break · cup replaces the glass, so the state reads without color</div>
+      <div style="height: 56px; border-radius: 10px; background: rgba(236,236,238,0.9); display: flex; align-items: center; justify-content: flex-end; gap: 28px; padding: 0 24px; color: #1c1c1e; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+        <div style="width: 40px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 8px; background: rgba(28,28,30,0.0);"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1c1c1e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 9h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"></path><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"></path><path d="M8 3v3M12 3v3"></path>
+</svg><div>04:10</div></div><div style="width: 32px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="width: 48px; height: 24px; border-radius: 6px; background: rgba(28,28,30,0.25);"></div><div style="font-size: 26px;">Wed 3 Sep&nbsp;&nbsp;17:32</div>
+      </div>
+    </div><div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-size: 12px; color: #6e6e73;">Same in dark menu bar (template glyph, monochrome)</div>
+      <div style="height: 56px; border-radius: 10px; background: rgba(30,30,32,0.85); display: flex; align-items: center; justify-content: flex-end; gap: 28px; padding: 0 24px; color: #f5f5f7; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">
+        <div style="width: 40px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.35);"></div><div style="display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; border-radius: 8px; background: rgba(28,28,30,0.0);"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.8">
+  <defs><clipPath id="c15"><circle cx="12" cy="12" r="8.2"></circle></clipPath></defs>
+  <circle cx="12" cy="12" r="9"></circle>
+  <path clip-path="url(#c15)" d="M2 15 Q5 13.4 8 15 T14 15 T20 15 T26 15 V24 H2 Z" fill="#f5f5f7" stroke="none"></path>
+</svg><div>18:42</div></div><div style="width: 32px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.35);"></div><div style="width: 48px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.35);"></div><div style="font-size: 26px;">Wed 3 Sep&nbsp;&nbsp;17:32</div>
+      </div>
+    </div>
+  <div style="display: flex; align-items: center; gap: 20px;">
+  <div style="width: 128px; height: 128px; border-radius: 30px; position: relative; overflow: hidden; background: linear-gradient(180deg, #e8f1ff 0%, #cfe0ff 100%); box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.8);">
+    <svg style="position: absolute; left: 0; bottom: 0;" width="128" height="128" viewBox="0 0 128 128"><path d="M0 70 Q16 60 32 70 T64 70 T96 70 T128 70 V128 H0 Z" fill="rgba(37,99,235,0.45)"></path><path d="M0 78 Q16 68 32 78 T64 78 T96 78 T128 78 V128 H0 Z" fill="rgba(37,99,235,0.7)"></path></svg>
+    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 300; font-size: 40px; color: #1c1c1e; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">25</div>
+  </div>
+  <div style="font-size: 12px; color: #6e6e73; max-width: 260px;">App icon: the card itself, glass with water and a big number. The menu bar uses the glass glyph above, not this icon (menu bar items must be monochrome template images).</div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

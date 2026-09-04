@@ -1,0 +1,88 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Card \u00b7 Running",
+      "x": 0,
+      "y": 0,
+      "w": 720,
+      "h": 380
+    },
+    {
+      "file": "CardPaused.dc.html",
+      "title": "Card \u00b7 Paused",
+      "x": 800,
+      "y": 0,
+      "w": 720,
+      "h": 380
+    },
+    {
+      "file": "CardDone.dc.html",
+      "title": "Card \u00b7 Done",
+      "x": 0,
+      "y": 520,
+      "w": 720,
+      "h": 380
+    },
+    {
+      "file": "CardBreak.dc.html",
+      "title": "Card \u00b7 Break",
+      "x": 800,
+      "y": 520,
+      "w": 720,
+      "h": 380
+    },
+    {
+      "file": "CardCompact.dc.html",
+      "title": "Card \u00b7 Compact (Layout 3)",
+      "x": 0,
+      "y": 1040,
+      "w": 760,
+      "h": 380
+    },
+    {
+      "file": "Popover.dc.html",
+      "title": "Popover \u00b7 Pick and start",
+      "x": 1640,
+      "y": 0,
+      "w": 420,
+      "h": 600
+    },
+    {
+      "file": "PopoverRunning.dc.html",
+      "title": "Popover \u00b7 While running",
+      "x": 1640,
+      "y": 720,
+      "w": 420,
+      "h": 680
+    },
+    {
+      "file": "Settings.dc.html",
+      "title": "Settings",
+      "x": 2160,
+      "y": 0,
+      "w": 560,
+      "h": 860
+    },
+    {
+      "file": "MenuBar.dc.html",
+      "title": "Menu bar item",
+      "x": 800,
+      "y": 1040,
+      "w": 760,
+      "h": 620
+    }
+  ],
+  "annotations": [
+    {
+      "id": "pick-one",
+      "x": 2820,
+      "y": 0,
+      "w": 260,
+      "text": "Glass. Layout 2 is the wide card, Layout 3 the compact one.\n\nLeft: card states. Middle: popover before and during a session. Right: global Settings window.\n\nCard controls: Pause/Play, Complete. Right-click still gives +5 min and Stop."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
