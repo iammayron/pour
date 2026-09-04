@@ -4,7 +4,8 @@ import SwiftUI
 /// Always-on-top, non-activating, borderless panel that hosts `FloatingView`.
 final class FloatingPanel: NSPanel {
     init(model: AppModel) {
-        super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 100),
+        let size = FloatingView.size(compact: model.compactCard)
+        super.init(contentRect: NSRect(origin: .zero, size: size),
                    styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
                    backing: .buffered, defer: false)
         level = .floating
@@ -15,10 +16,9 @@ final class FloatingPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         applySpaces(model.allSpaces)
-        let host = NSHostingView(rootView: FloatingView().environment(model))
-        host.sizingOptions = [.preferredContentSize]   // panel follows the Wide/Compact size
-        contentView = host
-        if !setFrameUsingName("Floating") { center() }
+        contentView = NSHostingView(rootView: FloatingView().environment(model))
+        // Restore only the position; the size always comes from the Wide/Compact setting.
+        if setFrameUsingName("Floating") { setContentSize(size) } else { center() }
         setFrameAutosaveName("Floating")
     }
 

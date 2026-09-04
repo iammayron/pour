@@ -3,6 +3,7 @@ import TodoistCore
 
 struct PickerView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         @Bindable var model = model
@@ -26,7 +27,7 @@ struct PickerView: View {
                 .onChange(of: model.filter) { Task { await model.loadTasks() } }
                 Spacer()
                 Button("Refresh list") { Task { await model.loadTasks() } }
-                    .controlSize(.small).disabled(model.loading)
+                    .disabled(model.loading)
             }
 
             if let error = model.error {
@@ -69,7 +70,10 @@ struct PickerView: View {
             Divider()
 
             HStack {
-                SettingsLink { Image(systemName: "gearshape") }
+                Button { // menu bar apps are not active, so the window would open grayed out
+                    NSApp.activate(ignoringOtherApps: true)
+                    openSettings()
+                } label: { Image(systemName: "gearshape") }
                 Spacer()
                 Button("Quit", role: .destructive) { NSApp.terminate(nil) }
                     .buttonStyle(.borderedProminent).tint(.red)

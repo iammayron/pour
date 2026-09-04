@@ -10,15 +10,17 @@ struct FloatingView: View {
         let _ = model.tick
         let water: Color = p.phase == .rest ? .green : .blue
         let compact = model.compactCard
-        TimelineView(.animation(paused: p.isPaused || p.phase == .workDone)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            ZStack {
-                WaveShape(level: p.level, phase: t * 0.6, amplitude: 6, wavelength: 140).fill(water.opacity(0.35))
-                WaveShape(level: p.level, phase: t * 0.9 + 2, amplitude: 4, wavelength: 90).fill(water.opacity(0.55))
-                if compact { compactContent(p) } else { wideContent(p) }
+        ZStack {
+            TimelineView(.animation(paused: p.isPaused || p.phase == .workDone)) { ctx in
+                let t = ctx.date.timeIntervalSinceReferenceDate
+                ZStack {   // two sibling shapes without a ZStack get stacked vertically
+                    WaveShape(level: p.level, phase: t * 0.6, amplitude: 6, wavelength: 140).fill(water.opacity(0.35))
+                    WaveShape(level: p.level, phase: t * 0.9 + 2, amplitude: 4, wavelength: 90).fill(water.opacity(0.55))
+                }
             }
+            if compact { compactContent(p) } else { wideContent(p) }
         }
-        .frame(width: compact ? 340 : 300, height: compact ? 56 : 100)
+        .frame(width: Self.size(compact: compact).width, height: Self.size(compact: compact).height)
         .glassCard(cornerRadius: compact ? 28 : 16)
         .contentShape(Rectangle())   // right-click anywhere, not only on text and water
         .onHover { hovering = $0 }
@@ -34,6 +36,8 @@ struct FloatingView: View {
         }
     }
 
+    static func size(compact: Bool) -> CGSize { compact ? CGSize(width: 340, height: 56) : CGSize(width: 300, height: 100) }
+
     // MARK: Wide (Layout 2)
 
     @ViewBuilder
@@ -43,7 +47,7 @@ struct FloatingView: View {
                 RoundButton(icon: "checkmark", size: 36, filled: true, tint: .green) { Task { await model.complete() } }
                 VStack(alignment: .leading, spacing: 6) {
                     caption("Done · \(Int(p.total / 60)) min")
-                    Text(p.task?.content ?? "").help(p.task?.content ?? "").font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                    TaskName(p.task?.content ?? "", size: 11, lines: 1)
                     HStack(spacing: 6) {
                         Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? "Break") { model.startBreak() }
                             .buttonStyle(Pill(prominent: true))
@@ -61,7 +65,7 @@ struct FloatingView: View {
                 Divider().frame(height: 36)
                 VStack(alignment: .leading, spacing: 3) {
                     caption(p.phase == .rest ? "Break" : p.isPaused ? "Paused" : "Focus")
-                    Text(p.task?.content ?? "").help(p.task?.content ?? "").font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                    TaskName(p.task?.content ?? "", size: 11, lines: 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 RoundButton(icon: "checkmark", size: 28) { Task { await model.complete() } }
@@ -86,7 +90,7 @@ struct FloatingView: View {
             } else {
                 RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 28, filled: p.isPaused) { p.togglePause() }
                     .opacity(controlOpacity)
-                Text(p.task?.content ?? "").help(p.task?.content ?? "").font(.system(size: 12, weight: .medium)).lineLimit(1)
+                TaskName(p.task?.content ?? "", size: 12, weight: .medium, lines: 1)
                 Spacer(minLength: 0)
                 Text(timeString(p.remaining))
                     .font(.system(size: 22, weight: .light, design: .rounded).monospacedDigit())
@@ -118,6 +122,45 @@ extension View {
         } else {
             self.background(.ultraThinMaterial, in: shape).clipShape(shape).overlay(rim)
         }
+    }
+}
+
+/// Task name that shows its full text in a popover above (arrow down) after hovering for half a second.
+/// Hover tracks the whole label box, not the glyphs.
+struct TaskName: View {
+    let text: String
+    var size: CGFloat = 11
+    var weight: Font.Weight = .semibold
+    var lines: Int = 1
+    @State private var showTip = false
+    @State private var hoverTask: Task<Void, Never>?
+
+    init(_ text: String, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1) {
+        self.text = text; self.size = size; self.weight = weight; self.lines = lines
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: size, weight: weight))
+            .lineLimit(lines)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                hoverTask?.cancel()
+                if inside {
+                    hoverTask = Task { try? await Task.sleep(for: .milliseconds(500)); if !Task.isCancelled { showTip = true } }
+                } else {
+                    showTip = false
+                }
+            }
+            .popover(isPresented: $showTip, arrowEdge: .top) {
+                Text(text)
+                    .font(.callout)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: 260, alignment: .leading)
+                    .padding(10)
+            }
     }
 }
 

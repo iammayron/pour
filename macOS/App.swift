@@ -2,15 +2,21 @@ import SwiftUI
 import TodoistCore
 
 @main
-struct TodoistFloatingApp: App {
+struct PourApp: App {
     @State private var model = AppModel()
 
     init() {
         #if DEBUG
-        // TF_DEMO=1 starts a fake session at launch so the card can be screenshotted without a token.
-        if ProcessInfo.processInfo.environment["TF_DEMO"] != nil {
+        // POUR_DEMO=1 starts a fake session at launch so the card can be screenshotted without a token.
+        if ProcessInfo.processInfo.environment["POUR_DEMO"] != nil {
             let m = AppModel(); _model = State(initialValue: m)
             m.start(TodoistTask(id: "demo", content: "Write the release notes for 0.1", projectId: nil, priority: 1, due: nil))
+            if ProcessInfo.processInfo.environment["POUR_DEMO"] == "settings" {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                }
+            }
         }
         #endif
     }

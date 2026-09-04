@@ -1,13 +1,13 @@
-# Todoist Floating
+# Pour
 
-Free menu-bar Pomodoro for Todoist. Pick a task, start a session, get an always-on-top floating card with the task name, countdown and a water wave filling up as time passes.
+Free menu-bar Pomodoro for Todoist. Pour 25 minutes into a task. Pick a task, start a session, get an always-on-top floating card with the task name, countdown and a water wave filling up as time passes.
 
 ## Build (macOS)
 
     brew install xcodegen
     xcodegen generate
-    xcodebuild -scheme TodoistFloating -configuration Debug -derivedDataPath build build
-    open build/Build/Products/Debug/TodoistFloating.app
+    xcodebuild -scheme Pour -configuration Debug -derivedDataPath build build
+    open build/Build/Products/Debug/Pour.app
 
 Core logic lives in `Packages/TodoistCore` (shared with the future iOS app): `cd Packages/TodoistCore && swift test`.
 

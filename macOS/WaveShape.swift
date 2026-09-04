@@ -8,9 +8,9 @@ struct WaveShape: Shape {
     var wavelength: Double = 110
 
     func path(in rect: CGRect) -> Path {
-        // Flatten the wave near empty/full so it never clips the edges.
-        let amp = amplitude * min(1, level * 10, (1 - level) * 10)
-        let baseY = rect.maxY - rect.height * level
+        // Crest is always visible: at level 0 the wave band sits on the bottom edge, at level 1 the troughs reach the top.
+        let amp = amplitude
+        let baseY = (rect.maxY - amp) - rect.height * level
         var p = Path()
         p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
         for x in stride(from: 0.0, through: rect.width, by: 2) {

@@ -19,17 +19,21 @@ final class AppModel {
     // MARK: - Settings (UserDefaults-backed)
 
     var token: String {
-        didSet { Keychain.token = token; client = token.isEmpty ? nil : TodoistClient(token: token) }
+        didSet { Keychain.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
     }
-    var filter: String       { didSet { d.set(filter, forKey: "filter") } }
-    var workMinutes: Double  { didSet { d.set(workMinutes, forKey: "workMinutes") } }
-    var breakMinutes: Double { didSet { d.set(breakMinutes, forKey: "breakMinutes") } }
-    var autoBreak: Bool      { didSet { d.set(autoBreak, forKey: "autoBreak") } }
-    var sound: Bool          { didSet { d.set(sound, forKey: "sound") } }
-    var notifications: Bool  { didSet { d.set(notifications, forKey: "notifications") } }
-    var logComment: Bool     { didSet { d.set(logComment, forKey: "logComment") } }
-    var compactCard: Bool    { didSet { d.set(compactCard, forKey: "compactCard") } }
-    var allSpaces: Bool      { didSet { d.set(allSpaces, forKey: "allSpaces"); panel?.applySpaces(allSpaces) } }
+    var filter: String       { didSet { save(filter, "filter") } }
+    var workMinutes: Double  { didSet { save(workMinutes, "workMinutes") } }
+    var breakMinutes: Double { didSet { save(breakMinutes, "breakMinutes") } }
+    var autoBreak: Bool      { didSet { save(autoBreak, "autoBreak") } }
+    var sound: Bool          { didSet { save(sound, "sound") } }
+    var notifications: Bool  { didSet { save(notifications, "notifications") } }
+    var logComment: Bool     { didSet { save(logComment, "logComment") } }
+    var compactCard: Bool    { didSet { save(compactCard, "compactCard"); panel?.setContentSize(FloatingView.size(compact: compactCard)) } }
+    var allSpaces: Bool      { didSet { save(allSpaces, "allSpaces"); panel?.applySpaces(allSpaces) } }
+
+    /// Bumped on every settings write so the Settings window can flash "Saved".
+    private(set) var lastSaved: Date?
+    private func save(_ value: Any, _ key: String) { d.set(value, forKey: key); lastSaved = Date() }
 
     private let d = UserDefaults.standard
     private var client: TodoistClient?
@@ -45,8 +49,8 @@ final class AppModel {
         autoBreak = d.bool(forKey: "autoBreak"); sound = d.bool(forKey: "sound"); notifications = d.bool(forKey: "notifications")
         logComment = d.bool(forKey: "logComment"); compactCard = d.bool(forKey: "compactCard"); allSpaces = d.bool(forKey: "allSpaces")
         pomodoro = Pomodoro(workMinutes: d.double(forKey: "workMinutes"), breakMinutes: d.double(forKey: "breakMinutes"))
-        // TF_DEMO skips the Keychain so a scripted launch is not blocked by the access prompt.
-        token = ProcessInfo.processInfo.environment["TF_DEMO"] == nil ? (Keychain.token ?? "") : ""
+        // POUR_DEMO skips the Keychain so a scripted launch is not blocked by the access prompt.
+        token = ProcessInfo.processInfo.environment["POUR_DEMO"] == nil ? (Keychain.token ?? "") : ""
         client = token.isEmpty ? nil : TodoistClient(token: token)
     }
 
@@ -104,7 +108,10 @@ final class AppModel {
         tick &+= 1
         switch pomodoro.tick() {
         case .work: workFinished()
-        case .rest: notify("Break over", "Back to work?"); stop()
+        case .rest:
+            notify("Break over", "Back to work?")
+            log("☕ \(Int(pomodoro.total / 60)) min break")
+            stop()
         default: break
         }
     }
@@ -114,10 +121,7 @@ final class AppModel {
         let minutes = Int(pomodoro.total / 60)
         notify("Pomodoro done", task?.content ?? "")
         if sound { NSSound(named: "Glass")?.play() }
-        if logComment, let client, let task {
-            Task { do { try await client.comment(taskId: task.id, content: "🍅 \(minutes) min focus") }
-                   catch { self.error = error.localizedDescription } }
-        }
+        log("🍅 \(minutes) min focus")
         guard autoBreak else { return }
         breakAt = Date().addingTimeInterval(10)
         autoBreakTask = Task { [weak self] in
@@ -125,6 +129,13 @@ final class AppModel {
             guard !Task.isCancelled else { return }
             self?.startBreak()
         }
+    }
+
+    /// Posts a comment on the current task when "Log a comment" is on.
+    private func log(_ content: String) {
+        guard logComment, let client, let task = pomodoro.task else { return }
+        Task { do { try await client.comment(taskId: task.id, content: content) }
+               catch { self.error = error.localizedDescription } }
     }
 
     private func notify(_ title: String, _ body: String) {

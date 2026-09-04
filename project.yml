@@ -1,4 +1,4 @@
-name: TodoistFloating
+name: Pour
 options:
   bundleIdPrefix: com.mayron
   deploymentTarget:
@@ -8,7 +8,7 @@ packages:
   TodoistCore:
     path: Packages/TodoistCore
 targets:
-  TodoistFloating:
+  Pour:
     type: application
     platform: macOS
     sources: [macOS]
@@ -18,12 +18,12 @@ targets:
       path: macOS/Resources/Info.plist
       properties:
         LSUIElement: true
-        CFBundleDisplayName: Todoist Floating
+        CFBundleDisplayName: Pour
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.mayron.todoist-floating
+        PRODUCT_BUNDLE_IDENTIFIER: com.mayron.pour
         SWIFT_VERSION: "5.9"
         # ponytail: self-signed local identity (scripts/dev-cert.sh) so Keychain trusts the app across rebuilds; no App Sandbox until a Developer ID exists.
         CODE_SIGN_STYLE: Manual

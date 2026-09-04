@@ -3,7 +3,7 @@ import Security
 
 /// One generic-password item. ponytail: single account; multi-account needs a per-account key.
 public enum Keychain {
-    private static let service = "com.mayron.todoist-floating"
+    private static let service = "com.mayron.pour"
     private static let account = "todoist-token"
 
     private static var query: [String: Any] {
