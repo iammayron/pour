@@ -17,7 +17,16 @@ A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a 
 
 ## Install
 
-Pour is not signed with an Apple Developer ID yet, so macOS will refuse to open it the first time.
+### Homebrew
+
+```sh
+brew tap iammayron/tap
+brew install --cask --no-quarantine pour
+```
+
+`--no-quarantine` matters: Pour is not signed with an Apple Developer ID yet, and without the flag macOS refuses to open it.
+
+### Manual
 
 1. Download `Pour.app` from [Releases](https://github.com/iammayron/pour/releases) and move it to `/Applications`.
 2. Remove the quarantine flag:
