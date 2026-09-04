@@ -38,7 +38,7 @@ struct PickerView: View {
                     Image(systemName: "flag.fill").font(.system(size: 11))
                         .foregroundStyle(priorityColor(task.priority) ?? .clear)
                     VStack(alignment: .leading, spacing: 2) {
-                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, weight: .regular)
+                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, weight: .regular, task: task)
                         if !model.meta(task).isEmpty {
                             Text(model.meta(task)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
@@ -65,7 +65,7 @@ struct PickerView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Selected").font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
-                    TaskName(model.selectedTask?.content ?? "Pick a task", subtitle: model.meta(model.selectedTask), priority: model.selectedTask?.priority ?? 1, size: 13, weight: .regular)
+                    TaskName(model.selectedTask?.content ?? "Pick a task", subtitle: model.meta(model.selectedTask), priority: model.selectedTask?.priority ?? 1, size: 13, weight: .regular, task: model.selectedTask)
                         .foregroundStyle(model.selectedTask == nil ? .secondary : .primary)
                 }
                 Spacer()
@@ -83,6 +83,8 @@ struct PickerView: View {
                     NSApp.activate(ignoringOtherApps: true)
                     openSettings()
                 } label: { Image(systemName: "gearshape") }
+                Button("Open task", systemImage: "arrow.up.forward.app") { openTodoist(model.selectedTask) }
+                    .help(model.selectedTask == nil ? "Open Todoist" : "Open the selected task in Todoist")
                 Spacer()
                 Button("Quit", role: .destructive) { NSApp.terminate(nil) }
                     .buttonStyle(.borderedProminent).tint(.red)
@@ -109,7 +111,7 @@ struct RunningPanel: View {
                 .font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(timeString(p.remaining)).font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
-                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 13)
+                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 13, task: p.task)
             }
             ProgressView(value: p.level)
             HStack(spacing: 6) {

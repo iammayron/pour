@@ -80,3 +80,12 @@ func timeString(_ s: TimeInterval) -> String {
     let s = Int(s.rounded(.up))
     return String(format: "%02d:%02d", s / 60, s % 60)
 }
+
+/// Opens the Todoist desktop app, falling back to the web app when the `todoist://` scheme
+/// isn't registered (app not installed).
+func openTodoist(_ task: TodoistTask? = nil) {
+    let path = task.map { "task?id=\($0.id)" } ?? ""
+    if NSWorkspace.shared.open(URL(string: "todoist://\(path)")!) { return }
+    let web = task.map { "https://app.todoist.com/app/task/\($0.id)" } ?? "https://app.todoist.com/app"
+    NSWorkspace.shared.open(URL(string: web)!)
+}

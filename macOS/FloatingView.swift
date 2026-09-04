@@ -25,6 +25,7 @@ struct FloatingView: View {
         .contextMenu {
             Button("+5 minutes") { p.extend(by: 300) }
             Button("Complete task") { Task { await model.complete() } }
+            Button("Open in Todoist") { openTodoist(p.task) }
             Picker("Card size", selection: Bindable(model).compactCard) {
                 Text("Wide").tag(false)
                 Text("Compact").tag(true)
@@ -45,7 +46,7 @@ struct FloatingView: View {
                 RoundButton(icon: "checkmark", size: 36, filled: true, tint: .green) { Task { await model.complete() } }
                 VStack(alignment: .leading, spacing: 6) {
                     caption("Done · \(Int(p.total / 60)) min")
-                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: 1)
+                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: 1, task: p.task)
                     HStack(spacing: 6) {
                         Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? "Break") { model.startBreak() }
                             .buttonStyle(Pill(prominent: true))
@@ -62,7 +63,7 @@ struct FloatingView: View {
                 Divider().frame(height: 36)
                 VStack(alignment: .leading, spacing: 3) {
                     caption(p.phase == .rest ? "Break" : p.isPaused ? "Paused" : "Focus")
-                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: model.meta(p.task).isEmpty ? 2 : 1)
+                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: model.meta(p.task).isEmpty ? 2 : 1, task: p.task)
                     if !model.meta(p.task).isEmpty {
                         Text(model.meta(p.task)).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -88,7 +89,7 @@ struct FloatingView: View {
                 Button("Stop") { model.stop() }.buttonStyle(Pill())
             } else {
                 RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 28, filled: p.isPaused) { p.togglePause() }
-                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 12, weight: .medium, lines: 1)
+                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 12, weight: .medium, lines: 1, task: p.task)
                 Spacer(minLength: 0)
                 Text(timeString(p.remaining))
                     .font(.system(size: 22, weight: .light, design: .rounded).monospacedDigit())
@@ -121,7 +122,7 @@ extension View {
 }
 
 /// Task name that shows its full text in a popover above (arrow down) after hovering for half a second.
-/// Hover tracks the whole label box, not the glyphs.
+/// Hover tracks the whole label box, not the glyphs. Double-click opens the task in Todoist.
 struct TaskName: View {
     let text: String
     var subtitle = ""
@@ -129,11 +130,12 @@ struct TaskName: View {
     var size: CGFloat = 11
     var weight: Font.Weight = .semibold
     var lines: Int = 1
+    var task: TodoistTask?
     @State private var showTip = false
     @State private var hoverTask: Task<Void, Never>?
 
-    init(_ text: String, subtitle: String = "", priority: Int = 1, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1) {
-        self.text = text; self.subtitle = subtitle; self.priority = priority; self.size = size; self.weight = weight; self.lines = lines
+    init(_ text: String, subtitle: String = "", priority: Int = 1, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1, task: TodoistTask? = nil) {
+        self.text = text; self.subtitle = subtitle; self.priority = priority; self.size = size; self.weight = weight; self.lines = lines; self.task = task
     }
 
     var body: some View {
@@ -142,6 +144,12 @@ struct TaskName: View {
             .lineLimit(lines)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
+            .simultaneousGesture(TapGesture(count: 2).onEnded {
+                guard let task else { return }
+                showTip = false
+                openTodoist(task)
+            })
+            .help(task == nil ? "" : "Double-click to open in Todoist")
             .onHover { inside in
                 hoverTask?.cancel()
                 if inside {
