@@ -21,10 +21,10 @@ A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a 
 
 ```sh
 brew tap iammayron/tap
-brew install --cask --no-quarantine pour
+brew install --cask pour
 ```
 
-`--no-quarantine` matters: Pour is not signed with an Apple Developer ID yet, and without the flag macOS refuses to open it.
+Pour is not signed with an Apple Developer ID yet. The cask removes the Gatekeeper quarantine flag on install, so it opens directly.
 
 ### Manual
 
