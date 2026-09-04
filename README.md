@@ -1,3 +1,5 @@
+<img src="design/icon.png" width="128" alt="Pour icon">
+
 # Pour
 
 Pour 25 minutes into a Todoist task.
