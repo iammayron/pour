@@ -19,17 +19,17 @@ final class AppModel {
     // MARK: - Settings (UserDefaults-backed)
 
     var token: String {
-        didSet { Keychain.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
+        didSet { guard token != oldValue else { return }; Keychain.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
     }
-    var filter: String       { didSet { save(filter, "filter") } }
-    var workMinutes: Double  { didSet { save(workMinutes, "workMinutes") } }
-    var breakMinutes: Double { didSet { save(breakMinutes, "breakMinutes") } }
-    var autoBreak: Bool      { didSet { save(autoBreak, "autoBreak") } }
-    var sound: Bool          { didSet { save(sound, "sound") } }
-    var notifications: Bool  { didSet { save(notifications, "notifications") } }
-    var logComment: Bool     { didSet { save(logComment, "logComment") } }
-    var compactCard: Bool    { didSet { save(compactCard, "compactCard"); panel?.setContentSize(FloatingView.size(compact: compactCard)) } }
-    var allSpaces: Bool      { didSet { save(allSpaces, "allSpaces"); panel?.applySpaces(allSpaces) } }
+    var filter: String       { didSet { guard filter != oldValue else { return }; save(filter, "filter") } }
+    var workMinutes: Double  { didSet { guard workMinutes != oldValue else { return }; save(workMinutes, "workMinutes") } }
+    var breakMinutes: Double { didSet { guard breakMinutes != oldValue else { return }; save(breakMinutes, "breakMinutes") } }
+    var autoBreak: Bool      { didSet { guard autoBreak != oldValue else { return }; save(autoBreak, "autoBreak") } }
+    var sound: Bool          { didSet { guard sound != oldValue else { return }; save(sound, "sound") } }
+    var notifications: Bool  { didSet { guard notifications != oldValue else { return }; save(notifications, "notifications") } }
+    var logComment: Bool     { didSet { guard logComment != oldValue else { return }; save(logComment, "logComment") } }
+    var compactCard: Bool    { didSet { guard compactCard != oldValue else { return }; save(compactCard, "compactCard"); panel?.setContentSize(FloatingView.size(compact: compactCard)) } }
+    var allSpaces: Bool      { didSet { guard allSpaces != oldValue else { return }; save(allSpaces, "allSpaces"); panel?.applySpaces(allSpaces) } }
 
     /// Bumped on every settings write so the Settings window can flash "Saved".
     private(set) var lastSaved: Date?
