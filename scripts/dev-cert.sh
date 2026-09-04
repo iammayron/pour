@@ -1,5 +1,5 @@
 #!/bin/zsh
-# One-time: create a stable local code-signing identity so Keychain stops prompting after every rebuild.
+# One-time: create a stable local code-signing identity (instead of ad-hoc, which changes every build).
 set -e
 T=$(mktemp -d); cd "$T"
 openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \

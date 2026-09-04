@@ -47,13 +47,13 @@ Requires Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
 brew install xcodegen
-./scripts/dev-cert.sh      # once: local signing certificate so Keychain stops prompting after rebuilds
+./scripts/dev-cert.sh      # once, optional: stable local signing identity instead of ad-hoc
 xcodegen generate
 xcodebuild -scheme Pour -configuration Debug -derivedDataPath build build
 open build/Build/Products/Debug/Pour.app
 ```
 
-Shared logic lives in `Packages/TodoistCore` (Todoist API client, Keychain, Pomodoro state machine). Run its tests with `cd Packages/TodoistCore && swift test`.
+Shared logic lives in `Packages/TodoistCore` (Todoist API client, token store, Pomodoro state machine). Run its tests with `cd Packages/TodoistCore && swift test`.
 
 Design source is in `design/` (Claude Design artboards).
 

@@ -25,7 +25,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mayron.pour
         SWIFT_VERSION: "5.9"
-        # ponytail: self-signed local identity (scripts/dev-cert.sh) so Keychain trusts the app across rebuilds; no App Sandbox until a Developer ID exists.
+        # ponytail: self-signed local identity (scripts/dev-cert.sh) for a stable app identity; no App Sandbox until a Developer ID exists.
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "Todoist Floating Dev"
         DEVELOPMENT_TEAM: ""

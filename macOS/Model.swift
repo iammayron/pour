@@ -19,7 +19,7 @@ final class AppModel {
     // MARK: - Settings (UserDefaults-backed)
 
     var token: String {
-        didSet { guard token != oldValue else { return }; Keychain.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
+        didSet { guard token != oldValue else { return }; TokenStore.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
     }
     var filter: String       { didSet { guard filter != oldValue else { return }; save(filter, "filter") } }
     var workMinutes: Double  { didSet { guard workMinutes != oldValue else { return }; save(workMinutes, "workMinutes") } }
@@ -49,8 +49,7 @@ final class AppModel {
         autoBreak = d.bool(forKey: "autoBreak"); sound = d.bool(forKey: "sound"); notifications = d.bool(forKey: "notifications")
         logComment = d.bool(forKey: "logComment"); compactCard = d.bool(forKey: "compactCard"); allSpaces = d.bool(forKey: "allSpaces")
         pomodoro = Pomodoro(workMinutes: d.double(forKey: "workMinutes"), breakMinutes: d.double(forKey: "breakMinutes"))
-        // POUR_DEMO skips the Keychain so a scripted launch is not blocked by the access prompt.
-        token = ProcessInfo.processInfo.environment["POUR_DEMO"] == nil ? (Keychain.token ?? "") : ""
+        token = TokenStore.token ?? ""
         client = token.isEmpty ? nil : TodoistClient(token: token)
     }
 
