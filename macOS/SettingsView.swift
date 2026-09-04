@@ -17,7 +17,7 @@ struct SettingsView: View {
                     Picker("", selection: $model.filter) {
                         ForEach(TodoistTask.filters, id: \.self) { Text($0.capitalized).tag($0) }
                     }
-                    .pickerStyle(.segmented).labelsHidden().frame(width: 220)
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
             }
             Section("Session") {
