@@ -21,6 +21,7 @@ A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a 
 
 ```sh
 brew tap iammayron/tap
+brew trust iammayron/tap   # Homebrew 6 requires trusting third-party taps once
 brew install --cask pour
 ```
 
