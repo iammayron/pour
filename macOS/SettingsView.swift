@@ -55,7 +55,7 @@ struct SettingsView: View {
         .toggleStyle(.switch)
         .scrollDisabled(true)
         .frame(width: 480, height: 900)
-        .overlay(alignment: .bottom) { SavedToast(lastSaved: model.lastSaved) }
+        .overlay(alignment: .top) { SavedToast(lastSaved: model.lastSaved) }
     }
 
     private var version: String {
@@ -69,7 +69,7 @@ struct SettingsView: View {
     }
 }
 
-/// "Saved" pill that fades in at the bottom after any change and fades out 1.5 s later.
+/// "Saved" pill that fades in at the top after any change and fades out 1.5 s later.
 struct SavedToast: View {
     let lastSaved: Date?
     @State private var visible = false
@@ -78,9 +78,11 @@ struct SavedToast: View {
     var body: some View {
         Label("Saved", systemImage: "checkmark.circle.fill")
             .font(.callout.weight(.medium))
+            .foregroundStyle(.green)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(.regularMaterial, in: Capsule())
-            .padding(.bottom, 16)
+            .overlay(Capsule().strokeBorder(.green.opacity(0.35), lineWidth: 1))
+            .padding(.top, 12)
             .opacity(visible ? 1 : 0)
             .animation(.easeOut(duration: 0.2), value: visible)
             .allowsHitTesting(false)

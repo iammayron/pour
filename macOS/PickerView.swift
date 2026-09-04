@@ -36,9 +36,10 @@ struct PickerView: View {
 
             List(model.visibleTasks, selection: $model.selectedTaskId) { task in
                 HStack {
-                    Image(systemName: "circle").foregroundStyle(.secondary)
-                    Text(task.content).lineLimit(1)
-                    Spacer()
+                    if let color = priorityColor(task.priority) {   // Todoist: 4 = P1 … 1 = none
+                        Image(systemName: "flag.fill").foregroundStyle(color).font(.system(size: 11))
+                    }
+                    TaskName(task.content, size: 13, weight: .regular)
                     if let due = task.due { Text(due.string).font(.caption).foregroundStyle(.secondary) }
                 }
                 .tag(task.id)
@@ -56,7 +57,7 @@ struct PickerView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Selected").font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
-                    Text(model.selectedTask?.content ?? "Pick a task").lineLimit(1)
+                    TaskName(model.selectedTask?.content ?? "Pick a task", size: 13, weight: .regular)
                         .foregroundStyle(model.selectedTask == nil ? .secondary : .primary)
                 }
                 Spacer()
@@ -85,6 +86,10 @@ struct PickerView: View {
     }
 }
 
+func priorityColor(_ p: Int) -> Color? {
+    switch p { case 4: .red; case 3: .orange; case 2: .blue; default: nil }
+}
+
 struct RunningPanel: View {
     @Environment(AppModel.self) private var model
 
@@ -96,7 +101,7 @@ struct RunningPanel: View {
                 .font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(timeString(p.remaining)).font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
-                Text(p.task?.content ?? "").fontWeight(.semibold).lineLimit(1)
+                TaskName(p.task?.content ?? "", size: 13)
             }
             ProgressView(value: p.level)
             HStack(spacing: 6) {
