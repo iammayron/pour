@@ -19,8 +19,8 @@ targets:
       properties:
         LSUIElement: true
         CFBundleDisplayName: Pour
-        CFBundleShortVersionString: "0.1.5"
-        CFBundleVersion: "6"
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "7"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mayron.pour
