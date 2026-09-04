@@ -123,6 +123,30 @@ extension View {
 
 /// Task name that shows its full text in a popover above (arrow down) after hovering for half a second.
 /// Hover tracks the whole label box, not the glyphs. Double-click opens the task in Todoist.
+/// The popover body, shared by the card and the picker list so the two cannot drift apart.
+struct TaskTip: View {
+    let text: String
+    var subtitle = ""
+    var priority = 1
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text).font(.callout)
+            HStack(spacing: 6) {
+                if let c = priorityColor(priority) {
+                    Image(systemName: "flag.fill").foregroundStyle(c)
+                }
+                if !subtitle.isEmpty { Text(subtitle).foregroundStyle(.secondary) }
+            }
+            .font(.caption)
+        }
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 260, alignment: .leading)
+        .padding(10)
+    }
+}
+
 struct TaskName: View {
     let text: String
     var subtitle = ""
@@ -131,49 +155,61 @@ struct TaskName: View {
     var weight: Font.Weight = .semibold
     var lines: Int = 1
     var task: TodoistTask?
+    /// Off inside a List row: there the full-width contentShape and its tap gesture swallow the
+    /// click that should select the row. The popover itself stays in both modes.
+    var richTooltip = true
     @State private var showTip = false
     @State private var hoverTask: Task<Void, Never>?
 
-    init(_ text: String, subtitle: String = "", priority: Int = 1, size: CGFloat = 11, weight: Font.Weight = .semibold, lines: Int = 1, task: TodoistTask? = nil) {
-        self.text = text; self.subtitle = subtitle; self.priority = priority; self.size = size; self.weight = weight; self.lines = lines; self.task = task
+    init(_ text: String, subtitle: String = "", priority: Int = 1, size: CGFloat = 11, weight: Font.Weight = .semibold,
+         lines: Int = 1, task: TodoistTask? = nil, richTooltip: Bool = true) {
+        self.text = text; self.subtitle = subtitle; self.priority = priority; self.size = size
+        self.weight = weight; self.lines = lines; self.task = task; self.richTooltip = richTooltip
     }
 
+    @ViewBuilder
     var body: some View {
-        Text(text)
+        let label = Text(text)
             .font(.system(size: size, weight: weight))
             .lineLimit(lines)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .simultaneousGesture(TapGesture(count: 2).onEnded {
-                guard let task else { return }
-                showTip = false
-                openTodoist(task)
-            })
-            .help(task == nil ? "" : "Double-click to open in Todoist")
-            .onHover { inside in
-                hoverTask?.cancel()
-                if inside {
-                    hoverTask = Task { try? await Task.sleep(for: .milliseconds(500)); if !Task.isCancelled { showTip = true } }
-                } else {
+
+        if richTooltip {
+            label
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture(count: 2).onEnded {
+                    guard let task else { return }
                     showTip = false
-                }
-            }
-            .popover(isPresented: $showTip, arrowEdge: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(text).font(.callout)
-                    HStack(spacing: 6) {
-                        if let c = priorityColor(priority) {
-                            Image(systemName: "flag.fill").foregroundStyle(c)
-                        }
-                        if !subtitle.isEmpty { Text(subtitle).foregroundStyle(.secondary) }
+                    openTodoist(task)
+                })
+                .help(task == nil ? "" : "Double-click to open in Todoist")
+                .onHover { inside in
+                    hoverTask?.cancel()
+                    if inside {
+                        hoverTask = Task { try? await Task.sleep(for: .milliseconds(500)); if !Task.isCancelled { showTip = true } }
+                    } else {
+                        showTip = false
                     }
-                    .font(.caption)
                 }
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: 260, alignment: .leading)
-                .padding(10)
-            }
+                .background(TipPopover(isPresented: $showTip) {
+                    TaskTip(text: text, subtitle: subtitle, priority: priority)
+                })
+        } else {
+            // Popover only. Any SwiftUI tap gesture here eats the click that selects the row,
+            // with or without a contentShape, so the List's double-click lives in DoubleClickCatcher.
+            label
+                .onHover { inside in
+                    hoverTask?.cancel()
+                    if inside {
+                        hoverTask = Task { try? await Task.sleep(for: .milliseconds(500)); if !Task.isCancelled { showTip = true } }
+                    } else {
+                        showTip = false
+                    }
+                }
+                .background(TipPopover(isPresented: $showTip) {
+                    TaskTip(text: text, subtitle: subtitle, priority: priority)
+                })
+        }
     }
 }
 
@@ -219,5 +255,54 @@ struct RoundButton: View {
 struct PressScale: ButtonStyle {
     func makeBody(configuration c: Configuration) -> some View {
         c.label.scaleEffect(c.isPressed ? 0.92 : 1).animation(.easeOut(duration: 0.1), value: c.isPressed)
+    }
+}
+
+/// NSPopover presented directly, because SwiftUI's `.popover` is always transient, and a transient
+/// popover swallows the next mouse-down to dismiss itself — the click that would select a row.
+/// `.applicationDefined` never auto-closes; the hover handler owns show and hide.
+struct TipPopover<Content: View>: NSViewRepresentable {
+    @Binding var isPresented: Bool
+    @ViewBuilder let content: () -> Content
+
+    func makeNSView(context: Context) -> NSView { PassthroughView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        context.coordinator.update(showing: isPresented, from: view, content: content())
+    }
+
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) { coordinator.close() }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    /// Anchor only: the click belongs to whatever is underneath.
+    final class PassthroughView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+
+    final class Coordinator {
+        private var popover: NSPopover?
+
+        func update<C: View>(showing: Bool, from anchor: NSView, content: C) {
+            guard showing, anchor.window != nil else { return close() }
+            let p = popover ?? make()
+            p.contentViewController = NSHostingController(rootView: content)
+            if !p.isShown { p.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY) }
+        }
+
+        func close() {
+            popover?.performClose(nil)
+            popover = nil
+        }
+
+        private func make() -> NSPopover {
+            let p = NSPopover()
+            p.behavior = .applicationDefined
+            p.animates = false
+            popover = p
+            return p
+        }
+
+        deinit { popover?.performClose(nil) }
     }
 }

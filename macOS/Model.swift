@@ -1,4 +1,5 @@
 import AppKit
+import AuthenticationServices
 import Observation
 import TodoistCore
 import UserNotifications
@@ -19,9 +20,18 @@ final class AppModel {
 
     // MARK: - Settings (UserDefaults-backed)
 
+    /// The pasted personal token, or the OAuth access token. Writing it replaces any OAuth pair.
     var token: String {
-        didSet { guard token != oldValue else { return }; TokenStore.token = token; client = token.isEmpty ? nil : TodoistClient(token: token); lastSaved = Date() }
+        get { auth?.accessToken ?? "" }
+        set { guard newValue != token else { return }; auth = newValue.isEmpty ? nil : TodoistAuth(accessToken: newValue); lastSaved = Date() }
     }
+
+    /// Single source of truth for credentials: writing it persists and rebuilds the client.
+    private var auth: TodoistAuth? {
+        didSet { TokenStore.auth = auth; client = auth.map { TodoistClient(token: $0.accessToken) } }
+    }
+    var isConnected: Bool { auth != nil }
+    var isOAuth: Bool { auth?.isOAuth ?? false }
     var filter: String       { didSet { guard filter != oldValue else { return }; save(filter, "filter") } }
     var workMinutes: Double  { didSet { guard workMinutes != oldValue else { return }; save(workMinutes, "workMinutes") } }
     var breakMinutes: Double { didSet { guard breakMinutes != oldValue else { return }; save(breakMinutes, "breakMinutes") } }
@@ -41,6 +51,7 @@ final class AppModel {
     private var panel: FloatingPanel?
     private var ticker: Timer?
     private var autoBreakTask: Task<Void, Never>?
+    private var lastLoad: Date?
 
     init() {
         d.register(defaults: ["filter": "today", "workMinutes": 25.0, "breakMinutes": 5.0, "autoBreak": true,
@@ -50,8 +61,8 @@ final class AppModel {
         autoBreak = d.bool(forKey: "autoBreak"); sound = d.bool(forKey: "sound"); notifications = d.bool(forKey: "notifications")
         logComment = d.bool(forKey: "logComment"); compactCard = d.bool(forKey: "compactCard"); allSpaces = d.bool(forKey: "allSpaces")
         pomodoro = Pomodoro(workMinutes: d.double(forKey: "workMinutes"), breakMinutes: d.double(forKey: "breakMinutes"))
-        token = TokenStore.token ?? ""
-        client = token.isEmpty ? nil : TodoistClient(token: token)
+        auth = TokenStore.auth                                    // didSet does not fire from init
+        client = auth.map { TodoistClient(token: $0.accessToken) }
     }
 
     var visibleTasks: [TodoistTask] {
@@ -70,18 +81,52 @@ final class AppModel {
 
     // MARK: - Todoist
 
-    func loadTasks() async {
-        guard let client else { error = "Add your Todoist API token in Settings."; return }
+    /// Reloads the list. `ifOlderThan` skips the fetch when the last successful load is newer than that,
+    /// so reopening the menu twice in a row does not hit the API twice.
+    /// Every Todoist call goes through here, so the expiry check and refresh live in exactly one place.
+    private func api() async -> TodoistClient? {
+        guard let current = auth else { error = "Connect Todoist in Settings."; return nil }
+        if current.isExpired {
+            do { auth = try await TodoistOAuth.refresh(current) }   // rotates: the new pair replaces the old
+            catch { self.error = "Todoist sign-in expired. Reconnect in Settings."; return nil }
+        }
+        return client
+    }
+
+    /// Runs the OAuth flow and stores the resulting pair. A cancelled sign-in is not an error.
+    func connect() async {
+        do { auth = try await TodoistOAuth.connect(); error = nil; lastSaved = Date(); lastLoad = nil; await loadTasks() }
+        catch let e as ASWebAuthenticationSessionError where e.code == .canceledLogin { }
+        catch { self.error = error.localizedDescription }
+    }
+
+    func disconnect() {
+        auth = nil; tasks = []; projects = [:]; selectedTaskId = nil; lastLoad = nil; error = nil; lastSaved = Date()
+    }
+
+    func loadTasks(ifOlderThan seconds: TimeInterval = 0) async {
+        if let lastLoad, Date().timeIntervalSince(lastLoad) < seconds { return }
+        guard let client = await api() else { return }
         loading = true; defer { loading = false }
         do {
             async let t = client.tasks(filter: "overdue | 7 days") // one fetch, bucketed locally so every preset shows its count
             async let p = client.projects()
-            (tasks, projects) = try await (t, p); error = nil
+            (tasks, projects) = try await (t, p); error = nil; lastLoad = Date()
+            await stopIfRunningTaskFinished(client)
         } catch { self.error = error.localizedDescription }
     }
 
+    /// A session whose task was completed in Todoist should not keep counting down.
+    /// The list is the whole universe of startable tasks, so a running task missing from a fresh
+    /// fetch is either done or rescheduled out of the window — one probe tells those apart.
+    private func stopIfRunningTaskFinished(_ client: TodoistClient) async {
+        guard let running = pomodoro.task, !tasks.contains(where: { $0.id == running.id }) else { return }
+        guard (try? await client.isClosed(taskId: running.id)) == true else { return }
+        stop()
+    }
+
     func complete() async {
-        guard let client, let task = pomodoro.task else { return }
+        guard let task = pomodoro.task, let client = await api() else { return }
         do { try await client.close(taskId: task.id); tasks.removeAll { $0.id == task.id }; stop() }
         catch { self.error = error.localizedDescription }
     }
@@ -145,8 +190,9 @@ final class AppModel {
 
     /// Posts a comment on the current task when "Log a comment" is on.
     private func log(_ content: String) {
-        guard logComment, let client, let task = pomodoro.task else { return }
-        Task { do { try await client.comment(taskId: task.id, content: content) }
+        guard logComment, let task = pomodoro.task else { return }
+        Task { guard let client = await api() else { return }
+               do { try await client.comment(taskId: task.id, content: content) }
                catch { self.error = error.localizedDescription } }
     }
 

@@ -8,9 +8,25 @@ struct SettingsView: View {
         @Bindable var model = model
         Form {
             Section("Todoist") {
-                SecureField("API token", text: $model.token)
-                LabeledContent("Get a token") {
-                    linkButton("Settings → Integrations → Developer", "https://app.todoist.com/app/settings/integrations/developer")
+                if model.isOAuth {
+                    HStack(alignment: .center) {   // as with the filter row below, LabeledContent would baseline-align and drop the button
+                        Text("Account"); Spacer()
+                        Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        Button("Disconnect", role: .destructive) { model.disconnect() }
+                            .buttonStyle(.borderedProminent).tint(.red)
+                    }
+                } else {
+                    HStack(alignment: .center) {
+                        Text("Account"); Spacer()
+                        Button("Connect Todoist…") { Task { await model.connect() } }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    DisclosureGroup("Use an API token instead") {
+                        SecureField("API token", text: $model.token)
+                        LabeledContent("Get a token") {
+                            linkButton("Settings → Integrations → Developer", "https://app.todoist.com/app/settings/integrations/developer")
+                        }
+                    }
                 }
                 HStack(alignment: .center) {   // LabeledContent aligns on text baseline, which drops the segments ~2 pt
                     Text("Default filter"); Spacer()

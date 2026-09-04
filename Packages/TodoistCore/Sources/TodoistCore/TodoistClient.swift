@@ -43,6 +43,19 @@ public actor TodoistClient {
         return all
     }
 
+    /// Whether the task is completed or gone, used to tell "finished elsewhere" from "rescheduled out of view".
+    /// A deleted task still answers 200 with `is_deleted`, and one deleted without being ticked has no
+    /// `completed_at`, so all three fields are checked.
+    public func isClosed(taskId: String) async throws -> Bool {
+        struct Probe: Decodable { let completed_at: String?; let checked: Bool?; let is_deleted: Bool? }
+        do {
+            let probe: Probe = try await send("GET", "tasks/\(taskId)")
+            return probe.completed_at != nil || probe.checked == true || probe.is_deleted == true
+        } catch let e as TodoistError where e.status == 404 {
+            return true   // purged
+        }
+    }
+
     public func close(taskId: String) async throws {
         let _: Empty = try await send("POST", "tasks/\(taskId)/close")
     }

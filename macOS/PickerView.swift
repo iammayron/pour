@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import TodoistCore
 
@@ -38,7 +39,7 @@ struct PickerView: View {
                     Image(systemName: "flag.fill").font(.system(size: 11))
                         .foregroundStyle(priorityColor(task.priority) ?? .clear)
                     VStack(alignment: .leading, spacing: 2) {
-                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, weight: .regular, task: task)
+                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, weight: .regular, task: task, richTooltip: false)
                         if !model.meta(task).isEmpty {
                             Text(model.meta(task)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
@@ -53,6 +54,7 @@ struct PickerView: View {
                 .tag(task.id)
             }
             .listStyle(.plain)
+            .background(DoubleClickCatcher { openTodoist(model.selectedTask) })
             .frame(minHeight: 180)
             .overlay {
                 if model.visibleTasks.isEmpty && !model.loading {
@@ -93,6 +95,11 @@ struct PickerView: View {
         .padding(12)
         .frame(width: 400)
         .task { await model.loadTasks() }
+        // MenuBarExtra(.window) keeps this view alive between opens, so `.task` fires once.
+        // The panel becomes key every time it opens: refresh there so the list is not a stale snapshot.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            Task { await model.loadTasks(ifOlderThan: 5) }
+        }
     }
 }
 
@@ -125,5 +132,46 @@ struct RunningPanel: View {
         }
         .padding(10)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+/// Double-click on a List row, without breaking single-click selection.
+///
+/// Every SwiftUI tap gesture tried on a row consumed the mouse-down that selects it, gesture on the
+/// label or on the List alike. This watches the same events and always hands them back, so AppKit
+/// still delivers the click to the List.
+/// ponytail: an AppKit escape hatch; delete it if SwiftUI ever ships a row double-click action.
+struct DoubleClickCatcher: NSViewRepresentable {
+    let action: () -> Void
+
+    func makeNSView(context: Context) -> NSView { CatchView() }
+
+    func updateNSView(_ view: NSView, context: Context) { (view as? CatchView)?.action = action }
+
+    final class CatchView: NSView {
+        var action: (() -> Void)?
+        private var monitor: Any?
+
+        /// Never a hit target: the click belongs to the row underneath.
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            removeMonitor()
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+                guard let self, event.window === self.window, event.clickCount == 2,
+                      self.bounds.contains(self.convert(event.locationInWindow, from: nil)) else { return event }
+                self.action?()
+                return event   // handing the event back is the whole point
+            }
+        }
+
+        private func removeMonitor() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+        }
+
+        deinit { removeMonitor() }
     }
 }
