@@ -10,7 +10,7 @@ A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a 
 
 ## Features
 
-- Menu bar app, no Dock icon. Search and filter your Todoist tasks (Today, Overdue, 7 days).
+- Menu bar app, no Dock icon. Search and filter your Todoist tasks (Upcoming, Today, Overdue, 7 days), with a count on each.
 - Floating card over every app and Space. Liquid Glass on macOS 26, translucent material before that. Wide or compact.
 - Blue water fills while you focus, green water drains during the break.
 - Pause, +5 min, Complete task, Stop. Right-click the card for the menu.

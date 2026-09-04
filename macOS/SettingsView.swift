@@ -1,4 +1,5 @@
 import SwiftUI
+import TodoistCore
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -14,7 +15,7 @@ struct SettingsView: View {
                 HStack(alignment: .center) {   // LabeledContent aligns on text baseline, which drops the segments ~2 pt
                     Text("Default filter"); Spacer()
                     Picker("", selection: $model.filter) {
-                        Text("Today").tag("today"); Text("Overdue").tag("overdue"); Text("7 days").tag("7 days")
+                        ForEach(TodoistTask.filters, id: \.self) { Text($0.capitalized).tag($0) }
                     }
                     .pickerStyle(.segmented).labelsHidden().frame(width: 220)
                 }

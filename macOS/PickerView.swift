@@ -13,22 +13,20 @@ struct PickerView: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Search", text: $model.search).textFieldStyle(.plain)
+                Button { Task { await model.loadTasks() } } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.borderless).disabled(model.loading).help("Refresh list")
             }
             .padding(6)
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
 
-            HStack {
-                Picker("Filter", selection: $model.filter) {
-                    Text("Today").tag("today")
-                    Text("Overdue").tag("overdue")
-                    Text("7 days").tag("7 days")
+            // The segmented control has no compressed layout: four labels with counts need ~340pt,
+            // so it gets its own row at .small and the popover is wide enough for 3-digit counts.
+            Picker("Filter", selection: $model.filter) {
+                ForEach(TodoistTask.filters, id: \.self) { f in
+                    Text("\(f.capitalized) (\(model.count(f)))").tag(f)
                 }
-                .pickerStyle(.segmented).labelsHidden()
-                .onChange(of: model.filter) { Task { await model.loadTasks() } }
-                Spacer()
-                Button("Refresh list") { Task { await model.loadTasks() } }
-                    .disabled(model.loading)
             }
+            .pickerStyle(.segmented).labelsHidden().controlSize(.small)
 
             if let error = model.error {
                 Text(error).font(.caption).foregroundStyle(.red).lineLimit(2)
@@ -45,7 +43,12 @@ struct PickerView: View {
                             Text(model.meta(task)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
-                    if let due = task.due { Text(due.string).font(.caption).foregroundStyle(.secondary) }
+                    if let due = task.due {
+                        let late = model.isOverdue(task)
+                        Text(due.label).font(.caption)
+                            .foregroundStyle(late ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                            .fontWeight(late ? .semibold : .regular)
+                    }
                 }
                 .tag(task.id)
             }
@@ -86,7 +89,7 @@ struct PickerView: View {
             }
         }
         .padding(12)
-        .frame(width: 340)
+        .frame(width: 400)
         .task { await model.loadTasks() }
     }
 }

@@ -55,8 +55,11 @@ final class AppModel {
     }
 
     var visibleTasks: [TodoistTask] {
-        search.isEmpty ? tasks : tasks.filter { $0.content.localizedCaseInsensitiveContains(search) }
+        tasks.filter { $0.matches(filter, today: today) && (search.isEmpty || $0.content.localizedCaseInsensitiveContains(search)) }
     }
+    func isOverdue(_ task: TodoistTask) -> Bool { task.matches("overdue", today: today) }
+    func count(_ filter: String) -> Int { tasks.filter { $0.matches(filter, today: today) }.count }
+    private var today: String { Date().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day()) }
     var selectedTask: TodoistTask? { tasks.first { $0.id == selectedTaskId } }
 
     /// "Project · Label · Label" for a task, empty when there is neither.
@@ -71,7 +74,7 @@ final class AppModel {
         guard let client else { error = "Add your Todoist API token in Settings."; return }
         loading = true; defer { loading = false }
         do {
-            async let t = client.tasks(filter: filter)
+            async let t = client.tasks(filter: "overdue | 7 days") // one fetch, bucketed locally so every preset shows its count
             async let p = client.projects()
             (tasks, projects) = try await (t, p); error = nil
         } catch { self.error = error.localizedDescription }
