@@ -24,7 +24,14 @@ struct FloatingView: View {
         .contentShape(Rectangle())   // right-click anywhere, not only on text and water
         .contextMenu {
             Button("+5 minutes") { p.extend(by: 300) }
-            Button("Complete task") { Task { await model.complete() } }
+            Menu("Work on") {
+                if model.visibleTasks.isEmpty { Text("No tasks") }
+                ForEach(model.visibleTasks) { task in
+                    Button(task.content) { model.attach(task) }
+                }
+            }
+            Button("Complete task") { Task { await model.complete() } }.disabled(p.task == nil)
+            if p.phase == .rest { Button("Skip the break") { model.skipBreak() } }
             Button("Open in Todoist") { openTodoist(p.task) }
             Picker("Card size", selection: Bindable(model).compactCard) {
                 Text("Wide").tag(false)
@@ -37,64 +44,173 @@ struct FloatingView: View {
 
     static func size(compact: Bool) -> CGSize { compact ? CGSize(width: 340, height: 56) : CGSize(width: 300, height: 100) }
 
-    // MARK: Wide (Layout 2)
+    // MARK: The band
+
+    /// Round dots, phase and today's total. The cycle leads on this card: what round you are in and
+    /// how close the long break is stay on screen whether or not a task is attached.
+    @ViewBuilder
+    private func band(_ p: Pomodoro, padding: CGFloat) -> some View {
+        HStack(spacing: 8) {
+            RoundDots(done: model.roundsDone, of: model.roundsBeforeLongBreak,
+                      current: p.phase == .work ? model.round : nil)
+            caption(bandTitle(p))
+            Spacer(minLength: 4)
+            caption(bandTrailing(p)).foregroundStyle(.secondary.opacity(0.7))
+        }
+        .padding(.horizontal, padding)
+        .frame(height: 24)
+        .overlay(alignment: .bottom) { Divider().opacity(0.6) }
+    }
+
+    private func bandTitle(_ p: Pomodoro) -> String {
+        switch p.phase {
+        case .rest:     p.isLongBreak ? "Long break" : "Short break"
+        case .workDone: "Round \(model.round) done · \(Int(p.total / 60)) min"
+        default:        p.isPaused ? "Paused · round \(model.round)" : "Round \(model.round) of \(model.roundsBeforeLongBreak)"
+        }
+    }
+
+    private func bandTrailing(_ p: Pomodoro) -> String {
+        switch p.phase {
+        case .rest: p.isLongBreak ? "Set complete" : "Long break after round \(model.roundsBeforeLongBreak)"
+        default:    "\(hoursMinutes(model.focusedToday)) today"
+        }
+    }
+
+    /// The task line, demoted to a caption so it can change or empty without the card looking broken.
+    @ViewBuilder
+    private func taskLine(_ p: Pomodoro, size: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if p.phase == .rest {
+                Text("Next up").font(.system(size: size, weight: .medium))
+                Text("Round \(min(model.roundsBeforeLongBreak, model.roundsDone + 1)) · \(Int(model.workMinutes)) min")
+                    .font(.system(size: size - 1)).foregroundStyle(.secondary)
+            } else if let task = p.task {
+                TaskName(task.content, subtitle: model.meta(task), priority: task.priority,
+                         size: size, weight: .medium, lines: 1, task: task)
+                Text(model.meta(task)).font(.system(size: size - 1)).foregroundStyle(.secondary).lineLimit(1)
+            } else {
+                Text("No task attached").font(.system(size: size, weight: .medium)).foregroundStyle(.secondary)
+                Text(lastWorked).font(.system(size: size - 1)).foregroundStyle(.tertiary).lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Keeps the minutes already banked visible when the slot empties, so they do not feel lost.
+    private var lastWorked: String {
+        guard let s = model.lastSegment, s.seconds >= 60 else { return "Pick one to keep the round" }
+        return "\(s.content) · \(Int(s.seconds / 60)) m"
+    }
+
+    /// The card cannot open the menu bar popover — MenuBarExtra has no programmatic API — so the
+    /// empty slot is filled from a menu on the card itself.
+    /// ponytail: a menu, not a searchable list. Swap in a popover if the list grows past a screenful.
+    @ViewBuilder
+    private func pickTaskMenu(size: CGFloat) -> some View {
+        Menu {
+            if model.visibleTasks.isEmpty { Text("No tasks") }
+            ForEach(model.visibleTasks) { task in
+                Button(task.content) { model.attach(task) }
+            }
+        } label: {
+            RoundFace(icon: "plus", size: size, dashed: true)
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: size, height: size)
+    }
+
+    // MARK: Wide
 
     @ViewBuilder
     private func wideContent(_ p: Pomodoro) -> some View {
-        HStack(spacing: 12) {
+        VStack(spacing: 0) {
+            band(p, padding: 14)
             if p.phase == .workDone {
-                RoundButton(icon: "checkmark", size: 36, filled: true, tint: .green) { Task { await model.complete() } }
-                VStack(alignment: .leading, spacing: 6) {
-                    caption("Done · \(Int(p.total / 60)) min")
-                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: 1, task: p.task)
+                HStack(spacing: 10) {
+                    RoundButton(icon: "checkmark", size: 36, filled: true, tint: .green) { Task { await model.complete() } }
+                        .disabled(p.task == nil)
                     HStack(spacing: 6) {
-                        Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? "Break") { model.startBreak() }
-                            .buttonStyle(Pill(prominent: true))
+                        Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? (model.nextBreakIsLong ? "Long break" : "Break")) {
+                            model.startBreak()
+                        }
+                        .buttonStyle(Pill(prominent: true))
                         Button("+5 min") { p.extend(by: 300) }.buttonStyle(Pill())
                         Button("Stop") { model.stop() }.buttonStyle(Pill())
                     }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                .padding(.horizontal, 14)
+                .frame(maxHeight: .infinity)
             } else {
-                RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 32, filled: p.isPaused) { p.togglePause() }
-                Text(timeString(p.remaining))
-                    .font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
-                    .opacity(p.isPaused ? 0.45 : 1)
-                Divider().frame(height: 36)
-                VStack(alignment: .leading, spacing: 3) {
-                    caption(p.phase == .rest ? "Break" : p.isPaused ? "Paused" : "Focus")
-                    TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 11, lines: model.meta(p.task).isEmpty ? 2 : 1, task: p.task)
-                    if !model.meta(p.task).isEmpty {
-                        Text(model.meta(p.task)).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+                HStack(spacing: 10) {
+                    RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 32, filled: p.isPaused) { p.togglePause() }
+                    // fixedSize: the clock never gives way to the task name, it is the thing you glance at.
+                    Text(timeString(p.remaining))
+                        .font(.system(size: 30, weight: .light, design: .rounded).monospacedDigit())
+                        .fixedSize()
+                        .opacity(p.isPaused ? 0.45 : 1)
+                    taskLine(p, size: 10)
+                    if p.phase == .rest {
+                        RoundButton(icon: "forward.end.fill", size: 28) { model.skipBreak() }
+                    } else if p.task == nil {
+                        pickTaskMenu(size: 28)
+                    } else {
+                        RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
+                .padding(.horizontal, 14)
+                .frame(maxHeight: .infinity)
             }
         }
-        .padding(.horizontal, 14)
     }
 
-    // MARK: Compact (Layout 3)
+    // MARK: Compact
 
+    /// No room for a band at 56 pt, so the dots ride directly above the clock — same reading order.
     @ViewBuilder
     private func compactContent(_ p: Pomodoro) -> some View {
         HStack(spacing: 10) {
             if p.phase == .workDone {
                 RoundButton(icon: "checkmark", size: 32, filled: true, tint: .green) { Task { await model.complete() } }
-                Text("Done").font(.system(size: 12, weight: .medium))
+                    .disabled(p.task == nil)
+                VStack(alignment: .leading, spacing: 2) {
+                    RoundDots(done: model.roundsDone, of: model.roundsBeforeLongBreak, current: nil)
+                    Text("Round \(model.round) done · \(Int(p.total / 60)) min")
+                        .font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                }
                 Spacer(minLength: 0)
-                Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? "Break") { model.startBreak() }
-                    .buttonStyle(Pill(prominent: true))
+                Button(model.secondsUntilBreak.map { "Break in \($0) s" } ?? (model.nextBreakIsLong ? "Long break" : "Break")) {
+                    model.startBreak()
+                }
+                .buttonStyle(Pill(prominent: true))
                 Button("Stop") { model.stop() }.buttonStyle(Pill())
             } else {
                 RoundButton(icon: p.isPaused ? "play.fill" : "pause.fill", size: 28, filled: p.isPaused) { p.togglePause() }
-                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 12, weight: .medium, lines: 1, task: p.task)
-                Spacer(minLength: 0)
-                Text(timeString(p.remaining))
-                    .font(.system(size: 22, weight: .light, design: .rounded).monospacedDigit())
-                    .opacity(p.isPaused ? 0.45 : 1)
-                RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
+                VStack(spacing: 3) {
+                    RoundDots(done: model.roundsDone, of: model.roundsBeforeLongBreak,
+                              current: p.phase == .work ? model.round : nil)
+                    Text(timeString(p.remaining))
+                        .font(.system(size: 22, weight: .light, design: .rounded).monospacedDigit())
+                        .fixedSize()
+                        .opacity(p.isPaused ? 0.45 : 1)
+                }
+                Divider().frame(height: 26)
+                if p.phase == .rest {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.isLongBreak ? "Long break" : "Short break").font(.system(size: 11, weight: .semibold))
+                        Text("Next: round \(min(model.roundsBeforeLongBreak, model.roundsDone + 1)) · \(Int(model.workMinutes)) min")
+                            .font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    RoundButton(icon: "forward.end.fill", size: 28) { model.skipBreak() }
+                } else {
+                    taskLine(p, size: 11)
+                    if p.task == nil {
+                        pickTaskMenu(size: 28)
+                    } else {
+                        RoundButton(icon: "checkmark", size: 28, tint: .green) { Task { await model.complete() } }
+                    }
+                }
             }
         }
         .padding(.horizontal, 12)
@@ -237,13 +353,7 @@ struct RoundButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: size * 0.38, weight: .semibold))
-                .foregroundStyle(filled ? Color.white : hovering ? tint : Color.primary)
-                .frame(width: size, height: size)
-                .background(filled ? AnyShapeStyle(tint.opacity(hovering ? 0.85 : 1))
-                            : hovering ? AnyShapeStyle(tint.opacity(0.35)) : AnyShapeStyle(.primary.opacity(0.14)), in: Circle())
-                .overlay(Circle().strokeBorder(filled ? Color.clear : hovering ? tint.opacity(0.5) : Color.primary.opacity(0.18), lineWidth: 1))
+            RoundFace(icon: icon, size: size, filled: filled, tint: tint, hovering: hovering)
         }
         .buttonStyle(PressScale())
         .onHover { hovering = $0 }
@@ -304,5 +414,48 @@ struct TipPopover<Content: View>: NSViewRepresentable {
         }
 
         deinit { popover?.performClose(nil) }
+    }
+}
+
+/// The circle chrome, shared by RoundButton and the pick-a-task menu so the two cannot drift apart.
+struct RoundFace: View {
+    let icon: String
+    var size: CGFloat = 32
+    var filled = false
+    var tint: Color = .accentColor
+    var hovering = false
+    /// Dashed and unfilled: an empty slot waiting to be filled, not an action on something.
+    var dashed = false
+
+    var body: some View {
+        let line: Color = filled ? .clear : hovering ? tint.opacity(0.5) : .primary.opacity(dashed ? 0.34 : 0.18)
+        Image(systemName: icon)
+            .font(.system(size: size * 0.38, weight: .semibold))
+            .foregroundStyle(filled ? Color.white : hovering ? tint : dashed ? Color.secondary : Color.primary)
+            .frame(width: size, height: size)
+            .background(filled ? AnyShapeStyle(tint.opacity(hovering ? 0.85 : 1))
+                        : hovering ? AnyShapeStyle(tint.opacity(0.35))
+                        : dashed ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.primary.opacity(0.14)), in: Circle())
+            .overlay(Circle().strokeBorder(line, style: StrokeStyle(lineWidth: 1, dash: dashed ? [3, 2] : [])))
+    }
+}
+
+/// One dot per round in the set: filled for done, accented for the one running.
+struct RoundDots: View {
+    let done: Int
+    let of: Int
+    var current: Int?
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(1...max(1, of), id: \.self) { i in
+                Circle()
+                    .fill(i <= done ? AnyShapeStyle(.primary.opacity(0.8))
+                          : i == current ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary.opacity(0.26)))
+                    .frame(width: 5, height: 5)
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Round \(current ?? done) of \(of)")
     }
 }

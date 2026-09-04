@@ -6,9 +6,31 @@ struct PickerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openSettings) private var openSettings
 
+    @State private var showingToday = false
+
     var body: some View {
         @Bindable var model = model
         VStack(alignment: .leading, spacing: 10) {
+            if showingToday {
+                TodayView(back: { showingToday = false })
+            } else {
+                tasks
+            }
+        }
+        .padding(12)
+        .frame(width: 400)
+        .task { await model.loadTasks() }
+        // MenuBarExtra(.window) keeps this view alive between opens, so `.task` fires once.
+        // The panel becomes key every time it opens: refresh there so the list is not a stale snapshot.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            Task { await model.loadTasks(ifOlderThan: 5) }
+        }
+    }
+
+    @ViewBuilder
+    private var tasks: some View {
+        @Bindable var model = model
+        Group {
             if model.pomodoro.isRunning { RunningPanel() ; Divider() }
 
             HStack(spacing: 6) {
@@ -44,7 +66,11 @@ struct PickerView: View {
                             Text(model.meta(task)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
-                    if let due = task.due {
+                    if task.id == model.pomodoro.task?.id {
+                        Label("In session", systemImage: "circle.fill")
+                            .font(.caption2.weight(.semibold)).imageScale(.small)
+                            .foregroundStyle(.tint)
+                    } else if let due = task.due {
                         let late = model.isOverdue(task)
                         Text(due.label).font(.caption)
                             .foregroundStyle(late ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
@@ -71,11 +97,20 @@ struct PickerView: View {
                         .foregroundStyle(model.selectedTask == nil ? .secondary : .primary)
                 }
                 Spacer()
-                Button { model.startSelected() } label: {
-                    Label("Start \(Int(model.workMinutes)) min", systemImage: "play.fill")
+                // Mid-session this points the running clock at another task; idle it opens a new
+                // session, with or without a task selected.
+                if model.pomodoro.isRunning {
+                    Button { model.attach(model.selectedTask) } label: {
+                        Label("Work on this", systemImage: "arrow.left.arrow.right")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.selectedTask == nil || model.selectedTask?.id == model.pomodoro.task?.id)
+                } else {
+                    Button { model.startSelected() } label: {
+                        Label("Start \(Int(model.workMinutes)) min", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.selectedTask == nil || model.pomodoro.isRunning)
             }
 
             Divider()
@@ -87,18 +122,17 @@ struct PickerView: View {
                 } label: { Image(systemName: "gearshape") }
                 Button("Open task", systemImage: "arrow.up.forward.app") { openTodoist(model.selectedTask) }
                     .help(model.selectedTask == nil ? "Open Todoist" : "Open the selected task in Todoist")
+                Button { showingToday = true } label: {
+                    HStack(spacing: 5) {
+                        RoundDots(done: model.roundsDone, of: model.roundsBeforeLongBreak, current: nil)
+                        Text("Today")
+                    }
+                }
+                .help("Every session you have run today")
                 Spacer()
                 Button("Quit", role: .destructive) { NSApp.terminate(nil) }
                     .buttonStyle(.borderedProminent).tint(.red)
             }
-        }
-        .padding(12)
-        .frame(width: 400)
-        .task { await model.loadTasks() }
-        // MenuBarExtra(.window) keeps this view alive between opens, so `.task` fires once.
-        // The panel becomes key every time it opens: refresh there so the list is not a stale snapshot.
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            Task { await model.loadTasks(ifOlderThan: 5) }
         }
     }
 }
@@ -114,24 +148,51 @@ struct RunningPanel: View {
         let p = model.pomodoro
         let _ = model.tick
         VStack(alignment: .leading, spacing: 8) {
-            Text(p.phase == .rest ? "Running · Break" : p.phase == .workDone ? "Done" : "Running · Focus")
-                .font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Text(title(p)).font(.caption2).textCase(.uppercase).foregroundStyle(.secondary)
+                RoundDots(done: model.roundsDone, of: model.roundsBeforeLongBreak,
+                          current: p.phase == .work ? model.round : nil)
+                Spacer()
+                Text(p.phase == .rest ? (p.isLongBreak ? "Set complete" : "Long break after round \(model.roundsBeforeLongBreak)")
+                                      : "\(hoursMinutes(model.focusedToday)) today")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(timeString(p.remaining)).font(.system(size: 28, weight: .light, design: .rounded).monospacedDigit())
-                TaskName(p.task?.content ?? "", subtitle: model.meta(p.task), priority: p.task?.priority ?? 1, size: 13, task: p.task)
+                VStack(alignment: .leading, spacing: 1) {
+                    if let task = p.task {
+                        TaskName(task.content, subtitle: model.meta(task), priority: task.priority, size: 13, task: task)
+                        if let s = model.lastSegment, s.seconds >= 60 {
+                            Text("\(Int(s.seconds / 60)) min on this task").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text(p.phase == .rest ? "Breaks carry no task" : "No task attached — pick one below")
+                            .font(.system(size: 13)).foregroundStyle(.secondary)
+                    }
+                }
             }
             ProgressView(value: p.level)
             HStack(spacing: 6) {
                 Button(p.isPaused ? "Resume" : "Pause", systemImage: p.isPaused ? "play.fill" : "pause.fill") { p.togglePause() }
                     .disabled(p.phase == .workDone)
                 Button("5 min", systemImage: "plus") { p.extend(by: 300) }
-                Button("Complete", systemImage: "checkmark") { Task { await model.complete() } }.buttonStyle(.borderedProminent)
+                Button("Complete", systemImage: "checkmark") { Task { await model.complete() } }
+                    .buttonStyle(.borderedProminent).disabled(p.task == nil)
+                if p.phase == .rest { Button("Skip", systemImage: "forward.end.fill") { model.skipBreak() } }
                 Button("Stop", systemImage: "stop.fill") { model.stop() }
             }
             .controlSize(.small)
         }
         .padding(10)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func title(_ p: Pomodoro) -> String {
+        switch p.phase {
+        case .rest:     p.isLongBreak ? "Long break" : "Short break"
+        case .workDone: "Round \(model.round) done"
+        default:        "Round \(model.round) of \(model.roundsBeforeLongBreak)"
+        }
     }
 }
 

@@ -4,18 +4,18 @@
 
 <h1 align="center">Pour</h1>
 
-<p align="center">Pour 25 minutes into a Todoist task.</p>
+<p align="center">Pour 25 minutes into your work.</p>
 
-A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a small always-on-top glass card shows the task, the countdown, and water rising as the time goes by. When it ends you get a sound, a notification, a break, and the session logged as a comment on the task.
+A free macOS menu bar Pomodoro for Todoist. Start a session and a small always-on-top glass card shows the round you are in, the countdown, and water rising as the time goes by. The session is the unit, not the task: finish something with time left on the clock and point it at the next thing without restarting anything.
 
 ## Features
 
 - Menu bar app, no Dock icon. Search and filter your Todoist tasks (Upcoming, Today, Overdue, 7 days), with a count on each.
-- Floating card over every app and Space. Liquid Glass on macOS 26, translucent material before that. Wide or compact.
-- Blue water fills while you focus, green water drains during the break.
-- Pause, +5 min, Complete task, Stop. Right-click the card for the menu.
-- Session end: sound, notification, automatic break, `🍅 25 min focus` and `☕ 5 min break` comments on the task.
-- Menu bar glyph fills with progress. A cup replaces it during breaks.
+- **The session outlives the task.** Complete a task, swap to another, or run with none attached — the clock never restarts. "Work on this" in the menu bar points the running session at whatever you pick.
+- Rounds and long breaks. Four focus rounds then a longer one, with both lengths and the count in Settings. Which break you get is read back from the log, so nothing can drift.
+- Every session recorded, focus and breaks alike, with the minutes each task got. The Today view reads it back, and `🍅 14 min focus` is posted once per task the round touched.
+- Floating card over every app and Space. Blue water fills while you focus, green drains during the break. Liquid Glass on macOS 26, translucent material before that. Wide or compact.
+- Pause, +5 min, Complete task, Skip the break, Stop — on the card, in the menu bar, or from the right-click menu. Sessions survive quitting the app. Menu bar glyph fills with progress; a cup replaces it during breaks.
 
 ## Install
 
@@ -45,6 +45,8 @@ Sign-in uses OAuth with PKCE and no client secret, so nothing has to be pasted a
 
 Either way the credentials live in `~/Library/Application Support/Pour/todoist-token`, readable only by your user, and never leave your Mac except to talk to Todoist.
 
+Sessions are recorded next to them in `sessions.json` — plain JSON, yours to read or delete.
+
 ## Build from source
 
 Requires Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
@@ -57,13 +59,13 @@ xcodebuild -scheme Pour -configuration Debug -derivedDataPath build build
 open build/Build/Products/Debug/Pour.app
 ```
 
-Shared logic lives in `Packages/TodoistCore` (Todoist API client, token store, Pomodoro state machine). Run its tests with `cd Packages/TodoistCore && swift test`.
+Shared logic lives in `Packages/TodoistCore` (Todoist API client, token store, Pomodoro state machine, session log). Run its tests with `cd Packages/TodoistCore && swift test`.
 
 Design source is in `design/` (Claude Design artboards).
 
 ## Roadmap
 
 - Signed and notarized builds
-- OAuth login (PKCE public client)
+- Auto-start the next round when a break ends
 - iOS app on the same core, with a Live Activity countdown
 - Android

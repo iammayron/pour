@@ -39,6 +39,10 @@ struct SettingsView: View {
             Section("Session") {
                 MinutesField("Work length", value: $model.workMinutes, range: 1...120, step: 5)
                 MinutesField("Break length", value: $model.breakMinutes, range: 1...60, step: 1)
+                MinutesField("Long break length", value: $model.longBreakMinutes, range: 1...120, step: 5)
+                LabeledContent("Long break after") {
+                    Stepper("\(model.roundsBeforeLongBreak) rounds", value: $model.roundsBeforeLongBreak, in: 2...12)
+                }
                 Toggle(isOn: $model.autoBreak) {
                     Text("Start break automatically")
                     Text("10 seconds after the focus session ends")
@@ -48,8 +52,8 @@ struct SettingsView: View {
                 Toggle("Play sound", isOn: $model.sound)
                 Toggle("Show notification", isOn: $model.notifications)
                 Toggle(isOn: $model.logComment) {
-                    Text("Log a comment on the task")
-                    Text("“🍅 25 min focus” and “☕ 5 min break”")
+                    Text("Log a comment on each task")
+                    Text("“🍅 14 min focus”, once per task the round worked on")
                 }
             }
             Section("Floating card") {
@@ -70,8 +74,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .toggleStyle(.switch)
-        .scrollDisabled(true)
-        .frame(width: 480, height: 900)
+        .frame(width: 480, height: 940)
         .overlay(alignment: .top) { SavedToast(lastSaved: model.lastSaved) }
     }
 

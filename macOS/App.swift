@@ -76,6 +76,12 @@ struct MenuBarLabel: View {
     }
 }
 
+/// "1 h 40 m", or "40 m" under the hour.
+func hoursMinutes(_ seconds: TimeInterval) -> String {
+    let m = Int(seconds / 60)
+    return m >= 60 ? "\(m / 60) h \(m % 60) m" : "\(m) m"
+}
+
 func timeString(_ s: TimeInterval) -> String {
     let s = Int(s.rounded(.up))
     return String(format: "%02d:%02d", s / 60, s % 60)

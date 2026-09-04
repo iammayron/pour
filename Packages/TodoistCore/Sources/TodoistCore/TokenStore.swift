@@ -33,13 +33,7 @@ public struct TodoistAuth: Codable, Sendable, Equatable {
 /// Not the Keychain: its ACL cannot remember an app without an Apple-issued certificate, so every launch prompted.
 /// ponytail: switch to the data-protection keychain once the app is signed with a Developer ID.
 public enum TokenStore {
-    private static var file: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Pour", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
-                                                 attributes: [.posixPermissions: 0o700])
-        return dir.appendingPathComponent("todoist-token")
-    }
+    private static var file: URL { Support.file("todoist-token") }
 
     /// The file holds JSON for an OAuth pair and a bare token otherwise, so pre-OAuth installs keep working.
     public static var auth: TodoistAuth? {
