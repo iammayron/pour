@@ -39,7 +39,7 @@ Pour is not signed with an Apple Developer ID yet. The cask removes the Gatekeep
    Or right-click `Pour.app` → Open, then confirm in System Settings → Privacy & Security → Open Anyway.
 3. Open Pour. Click the timer icon in the menu bar → cog → paste your Todoist API token.
 
-Get a token at Todoist → Settings → Integrations → Developer, or open https://app.todoist.com/app/settings/integrations/developer. The token is stored in your Keychain and never leaves your Mac except to talk to Todoist.
+Get a token at Todoist → Settings → Integrations → Developer, or open https://app.todoist.com/app/settings/integrations/developer. The token is stored in `~/Library/Application Support/Pour/todoist-token`, readable only by your user, and never leaves your Mac except to talk to Todoist.
 
 ## Build from source
 
