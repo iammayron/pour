@@ -1,8 +1,10 @@
-<img src="design/icon.png" width="128" alt="Pour icon">
+<p align="center">
+  <img src="design/icon.png" width="128" alt="Pour icon">
+</p>
 
-# Pour
+<h1 align="center">Pour</h1>
 
-Pour 25 minutes into a Todoist task.
+<p align="center">Pour 25 minutes into a Todoist task.</p>
 
 A free macOS menu bar Pomodoro for Todoist. Pick a task, start a session, and a small always-on-top glass card shows the task, the countdown, and water rising as the time goes by. When it ends you get a sound, a notification, a break, and the session logged as a comment on the task.
 
